@@ -6,7 +6,7 @@ from marshmallow import Schema, fields
 # Import components for db and encryption
 from config import db, bcrypt
 
-# User model in chareg of the accounts in the db
+# User model in charge of the accounts in the db
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -16,25 +16,32 @@ class User(db.Model):
     # Set up unique usernames for users ensure it cannot be blank
     username = db.Column(db.String, unique=True, nullable=False)
 
-    # Finally hash the password and store it to the db
+    # Hash the password and store it to the db
     _password_hash = db.Column(db.String)
+
+    # Optional profile image URL
+    image_url = db.Column(db.String)
+
+    # Optional bio text
+    bio = db.Column(db.String)
 
     # One user might have many recipes so utilize backref to let recipe.user find the owner
     recipes = db.relationship('Recipe', backref='user')
 
-    # Use the hybrid_property decorator to let the password_hash to be a column
+    # Use the hybrid_property decorator to let the password_hash behave like a column
     @hybrid_property
     def password_hash(self):
 
-        # Perform error handling to prevent direct reading of the hash 
+        # Perform error handling to prevent direct reading of the hash
         raise AttributeError('Password hash is not readable')
 
-    # Use setter decorator
+    # Use setter decorator to trigger when user.password_hash = 'password' is called
     @password_hash.setter
     def password_hash(self, password):
-        # Use bcrypt to perform the hash on passwords
+
+        # Use bcrypt to perform the hash on passwords and decode bytes to string for storage
         self._password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-    
+
     # Create a function to compare the original text password to the stored hash
     def authenticate(self, password):
         return bcrypt.check_password_hash(self._password_hash, password)
@@ -43,7 +50,7 @@ class User(db.Model):
     @validates('username')
     def validate_username(self, key, username):
 
-        # Peroform error handling for incorrect username entry
+        # Perform error handling for incorrect username entry
         if not username:
             raise ValueError('Username is required')
         return username
@@ -68,7 +75,7 @@ class Recipe(db.Model):
     # Create preparation time in minutes
     minutes_to_complete = db.Column(db.Integer)
 
-    # Create a foreign key to link this specefic recipe to its owner in db
+    # Create a foreign key to link this specific recipe to its owner in db
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     # Use validates decorator for each time the title is set
